@@ -1,0 +1,80 @@
+class EventEmitter {
+    constructor() {
+        this.events = {};
+    }
+
+    on(event, listener) {
+        if (!this.events[event]) {
+            this.events[event] = [];
+        }
+        this.events[event].push(listener);
+    }
+
+    emit(event, data) {
+        if (this.events[event]) {
+            this.events[event].forEach(listener => listener(data));
+        }
+    }
+}
+
+class Download extends EventEmitter {
+    start(url, fileName, size) {
+        this.emit("downloadStarted", {
+            url,
+            fileName,
+            size
+        });
+
+        let bytes = 0;
+        const startTime = Date.now();
+
+        const timer = setInterval(() => {
+            bytes += 10;
+
+            if (bytes >= size) {
+                bytes = size;
+            }
+
+            const percent = Math.round((bytes / size) * 100);
+
+            this.emit("downloadProgress", {
+                percent,
+                bytes
+            });
+
+            if (bytes >= size) {
+                clearInterval(timer);
+
+                this.emit("downloadCompleted", {
+                    fileName,
+                    path: "./downloads/" + fileName,
+                    time: Date.now() - startTime + " ms"
+                });
+            }
+        }, 500);
+    }
+}
+
+const download = new Download();
+
+download.on("downloadStarted", data => {
+    console.log("Download Started:", data);
+});
+
+download.on("downloadProgress", data => {
+    console.log("Download Progress:", data);
+});
+
+download.on("downloadCompleted", data => {
+    console.log("Download Completed:", data);
+});
+
+download.on("downloadFailed", data => {
+    console.log("Download Failed:", data);
+});
+
+download.start(
+    "https://example.com/file.zip",
+    "file.zip",
+    100
+);
